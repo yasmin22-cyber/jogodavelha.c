@@ -1,0 +1,7 @@
+
+*.o
+*.out
+jogo_da_velha
+
+
+.DS_Store
