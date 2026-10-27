@@ -1,65 +1,80 @@
 #include <stdio.h>
 #include "jogo.h"
 
-void inicializarJogo(Jogo *jogo) {
+void inicializaTabuleiro(Tabuleiro *tab) {
     int i, j;
 
-    for (i = 0; i < TAMANHO; i++)
-        for (j = 0; j < TAMANHO; j++)
-            jogo->tabuleiro[i][j] = ' ';
-
-    jogo->jogadorAtual = 'X';
-    jogo->quantidadeJogadas = 0;
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            tab->M[i][j] = VAZIO;
 }
 
-void mostrarTabuleiro(Jogo *jogo) {
-    int i;
+void desenha(Tabuleiro *tab) {
+    int i, j;
+    char simbolo;
 
-    printf("\n    0   1   2\n");
-    for (i = 0; i < TAMANHO; i++) {
-        printf("%d   %c | %c | %c\n", i, jogo->tabuleiro[i][0],
-               jogo->tabuleiro[i][1], jogo->tabuleiro[i][2]);
-        if (i < TAMANHO - 1)
-            printf("   ---+---+---\n");
+    printf("\033[2J\033[H");
+    printf("JOGO DA VELHA\n\n");
+    printf("    0   1   2\n");
+
+    for (i = 0; i < 3; i++) {
+        printf("%d ", i);
+        for (j = 0; j < 3; j++) {
+            if (tab->M[i][j] == MARCA_O)
+                simbolo = 'O';
+            else if (tab->M[i][j] == MARCA_X)
+                simbolo = 'X';
+            else
+                simbolo = ' ';
+
+            printf(" %c ", simbolo);
+            if (j < 2)
+                printf("|");
+        }
+        printf("\n");
+        if (i < 2)
+            printf("  ---+---+---\n");
     }
+    printf("\n");
 }
 
-int verificarVitoria(Jogo *jogo, char simbolo) {
-    int i;
+int temVencedor(Tabuleiro *tab) {
+    int i, soma;
 
-    for (i = 0; i < TAMANHO; i++) {
-        if (jogo->tabuleiro[i][0] == simbolo &&
-            jogo->tabuleiro[i][1] == simbolo &&
-            jogo->tabuleiro[i][2] == simbolo)
-            return 1;
+    for (i = 0; i < 3; i++) {
+        soma = tab->M[i][0] + tab->M[i][1] + tab->M[i][2];
+        if (soma == 3)
+            return MARCA_O;
+        if (soma == 12)
+            return MARCA_X;
 
-        if (jogo->tabuleiro[0][i] == simbolo &&
-            jogo->tabuleiro[1][i] == simbolo &&
-            jogo->tabuleiro[2][i] == simbolo)
-            return 1;
+        soma = tab->M[0][i] + tab->M[1][i] + tab->M[2][i];
+        if (soma == 3)
+            return MARCA_O;
+        if (soma == 12)
+            return MARCA_X;
     }
 
-    if (jogo->tabuleiro[0][0] == simbolo &&
-        jogo->tabuleiro[1][1] == simbolo &&
-        jogo->tabuleiro[2][2] == simbolo)
-        return 1;
+    soma = tab->M[0][0] + tab->M[1][1] + tab->M[2][2];
+    if (soma == 3)
+        return MARCA_O;
+    if (soma == 12)
+        return MARCA_X;
 
-    if (jogo->tabuleiro[0][2] == simbolo &&
-        jogo->tabuleiro[1][1] == simbolo &&
-        jogo->tabuleiro[2][0] == simbolo)
-        return 1;
+    soma = tab->M[0][2] + tab->M[1][1] + tab->M[2][0];
+    if (soma == 3)
+        return MARCA_O;
+    if (soma == 12)
+        return MARCA_X;
 
     return 0;
 }
 
-void alternarJogador(Jogo *jogo) {
-    if (jogo->jogadorAtual == 'X')
-        jogo->jogadorAtual = 'O';
-    else
-        jogo->jogadorAtual = 'X';
+void marcaJogada(Tabuleiro *tab, int x, int y, int tipo) {
+    tab->M[x][y] = tipo;
 }
 
-void jogadaHumana(Jogo *jogo) {
+void jogaTeclado(JogadorTeclado *jogador, Tabuleiro *tab) {
     int linha, coluna;
     int valida = 0;
 
@@ -72,46 +87,44 @@ void jogadaHumana(Jogo *jogo) {
             printf("Entrada invalida! Digite dois numeros.\n");
         } else if (linha < 0 || linha > 2 || coluna < 0 || coluna > 2) {
             printf("Posicao invalida! Use numeros de 0 a 2.\n");
-        } else if (jogo->tabuleiro[linha][coluna] != ' ') {
+        } else if (tab->M[linha][coluna] != VAZIO) {
             printf("Essa casa ja esta ocupada!\n");
         } else {
             valida = 1;
         }
     }
 
-    jogo->tabuleiro[linha][coluna] = jogo->jogadorAtual;
-    jogo->quantidadeJogadas++;
+    marcaJogada(tab, linha, coluna, jogador->tipo);
 }
 
-int contarChancesDeVitoria(Jogo *jogo, char simbolo) {
-    int i, j;
-    int chances = 0;
+int contaChances(Tabuleiro *tab, int tipo) {
+    int i, j, chances = 0;
 
-    for (i = 0; i < TAMANHO; i++)
-        for (j = 0; j < TAMANHO; j++)
-            if (jogo->tabuleiro[i][j] == ' ') {
-                jogo->tabuleiro[i][j] = simbolo;
-                if (verificarVitoria(jogo, simbolo))
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            if (tab->M[i][j] == VAZIO) {
+                tab->M[i][j] = tipo;
+                if (temVencedor(tab) == tipo)
                     chances++;
-                jogo->tabuleiro[i][j] = ' ';
+                tab->M[i][j] = VAZIO;
             }
 
     return chances;
 }
 
-int procurarVitoria(Jogo *jogo, char simbolo, int *linha, int *coluna) {
+int completaSequencia(Tabuleiro *tab, int tipo, int *x, int *y) {
     int i, j, venceu;
 
-    for (i = 0; i < TAMANHO; i++)
-        for (j = 0; j < TAMANHO; j++)
-            if (jogo->tabuleiro[i][j] == ' ') {
-                jogo->tabuleiro[i][j] = simbolo;
-                venceu = verificarVitoria(jogo, simbolo);
-                jogo->tabuleiro[i][j] = ' ';
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            if (tab->M[i][j] == VAZIO) {
+                tab->M[i][j] = tipo;
+                venceu = (temVencedor(tab) == tipo);
+                tab->M[i][j] = VAZIO;
 
                 if (venceu) {
-                    *linha = i;
-                    *coluna = j;
+                    *x = i;
+                    *y = j;
                     return 1;
                 }
             }
@@ -119,19 +132,25 @@ int procurarVitoria(Jogo *jogo, char simbolo, int *linha, int *coluna) {
     return 0;
 }
 
-int procurarFork(Jogo *jogo, char simbolo, int *linha, int *coluna) {
+int regra1(Tabuleiro *tab, int tipo, int oponente, int *x, int *y) {
+    if (completaSequencia(tab, tipo, x, y))
+        return 1;
+    return completaSequencia(tab, oponente, x, y);
+}
+
+int regra2(Tabuleiro *tab, int tipo, int *x, int *y) {
     int i, j, chances;
 
-    for (i = 0; i < TAMANHO; i++)
-        for (j = 0; j < TAMANHO; j++)
-            if (jogo->tabuleiro[i][j] == ' ') {
-                jogo->tabuleiro[i][j] = simbolo;
-                chances = contarChancesDeVitoria(jogo, simbolo);
-                jogo->tabuleiro[i][j] = ' ';
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            if (tab->M[i][j] == VAZIO) {
+                tab->M[i][j] = tipo;
+                chances = contaChances(tab, tipo);
+                tab->M[i][j] = VAZIO;
 
                 if (chances >= 2) {
-                    *linha = i;
-                    *coluna = j;
+                    *x = i;
+                    *y = j;
                     return 1;
                 }
             }
@@ -139,122 +158,137 @@ int procurarFork(Jogo *jogo, char simbolo, int *linha, int *coluna) {
     return 0;
 }
 
-int procurarCantoOposto(Jogo *jogo, int *linha, int *coluna) {
+int regra3(Tabuleiro *tab, int *x, int *y) {
+    if (tab->M[1][1] == VAZIO) {
+        *x = 1;
+        *y = 1;
+        return 1;
+    }
+    return 0;
+}
+
+int regra4(Tabuleiro *tab, int oponente, int *x, int *y) {
     int cantos[4][2] = {{0, 0}, {0, 2}, {2, 0}, {2, 2}};
     int i, l, c;
 
     for (i = 0; i < 4; i++) {
         l = cantos[i][0];
         c = cantos[i][1];
-        if (jogo->tabuleiro[l][c] == 'X' &&
-            jogo->tabuleiro[2 - l][2 - c] == ' ') {
-            *linha = 2 - l;
-            *coluna = 2 - c;
+        if (tab->M[l][c] == oponente && tab->M[2 - l][2 - c] == VAZIO) {
+            *x = 2 - l;
+            *y = 2 - c;
             return 1;
         }
     }
-
     return 0;
 }
 
-int procurarCantoVazio(Jogo *jogo, int *linha, int *coluna) {
+int regra5(Tabuleiro *tab, int *x, int *y) {
     int cantos[4][2] = {{0, 0}, {0, 2}, {2, 0}, {2, 2}};
     int i;
 
     for (i = 0; i < 4; i++)
-        if (jogo->tabuleiro[cantos[i][0]][cantos[i][1]] == ' ') {
-            *linha = cantos[i][0];
-            *coluna = cantos[i][1];
+        if (tab->M[cantos[i][0]][cantos[i][1]] == VAZIO) {
+            *x = cantos[i][0];
+            *y = cantos[i][1];
             return 1;
         }
-
     return 0;
 }
 
-int procurarCasaVazia(Jogo *jogo, int *linha, int *coluna) {
+int regra6(Tabuleiro *tab, int *x, int *y) {
     int i, j;
 
-    for (i = 0; i < TAMANHO; i++)
-        for (j = 0; j < TAMANHO; j++)
-            if (jogo->tabuleiro[i][j] == ' ') {
-                *linha = i;
-                *coluna = j;
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            if (tab->M[i][j] == VAZIO) {
+                *x = i;
+                *y = j;
                 return 1;
             }
-
     return 0;
 }
 
-void jogadaComputador(Jogo *jogo) {
-    int linha = 0, coluna = 0, achou;
+void jogaIA(JogadorIA *jogador, Tabuleiro *tab) {
+    int x = 0, y = 0, achou;
+    int oponente;
 
-    achou = procurarVitoria(jogo, 'O', &linha, &coluna);
-    if (!achou)
-        achou = procurarVitoria(jogo, 'X', &linha, &coluna);
-    if (!achou)
-        achou = procurarFork(jogo, 'O', &linha, &coluna);
-    if (!achou && jogo->tabuleiro[1][1] == ' ') {
-        linha = 1;
-        coluna = 1;
-        achou = 1;
-    }
-    if (!achou)
-        achou = procurarCantoOposto(jogo, &linha, &coluna);
-    if (!achou)
-        achou = procurarCantoVazio(jogo, &linha, &coluna);
-    if (!achou)
-        procurarCasaVazia(jogo, &linha, &coluna);
+    if (jogador->tipo == MARCA_O)
+        oponente = MARCA_X;
+    else
+        oponente = MARCA_O;
 
-    jogo->tabuleiro[linha][coluna] = 'O';
-    jogo->quantidadeJogadas++;
+    achou = regra1(tab, jogador->tipo, oponente, &x, &y);
+    if (!achou)
+        achou = regra2(tab, jogador->tipo, &x, &y);
+    if (!achou)
+        achou = regra3(tab, &x, &y);
+    if (!achou)
+        achou = regra4(tab, oponente, &x, &y);
+    if (!achou)
+        achou = regra5(tab, &x, &y);
+    if (!achou)
+        regra6(tab, &x, &y);
 
-    printf("Computador jogou na linha %d, coluna %d\n", linha, coluna);
+    marcaJogada(tab, x, y, jogador->tipo);
 }
 
-void jogarPartida(int modo) {
-    Jogo jogo;
-    int fim = 0;
+void configuraJogadores(Partida *partida) {
+    partida->modo = 0;
 
-    inicializarJogo(&jogo);
-
-    while (fim == 0) {
-        mostrarTabuleiro(&jogo);
-        printf("Vez do jogador %c\n", jogo.jogadorAtual);
-        if (modo == 2 && jogo.jogadorAtual == 'O')
-            jogadaComputador(&jogo);
-        else
-            jogadaHumana(&jogo);
-
-        if (verificarVitoria(&jogo, jogo.jogadorAtual)) {
-            mostrarTabuleiro(&jogo);
-            printf("Jogador %c venceu!\n", jogo.jogadorAtual);
-            fim = 1;
-        } else if (jogo.quantidadeJogadas == 9) {
-            mostrarTabuleiro(&jogo);
-            printf("Deu velha! Empate.\n");
-            fim = 1;
-        } else {
-            alternarJogador(&jogo);
-        }
-    }
-}
-
-void iniciarJogo(void) {
-    int modo = 0;
-
-    printf("===== JOGO DA VELHA =====\n");
+    printf("JOGO DA VELHA\n");
     printf("1 - Dois jogadores\n");
     printf("2 - Contra o computador\n");
 
-    while (modo != 1 && modo != 2) {
+    while (partida->modo != 1 && partida->modo != 2) {
         printf("Escolha o modo: ");
-        if (scanf("%d", &modo) != 1) {
-            modo = 0;
+        if (scanf("%d", &partida->modo) != 1) {
+            partida->modo = 0;
             while (getchar() != '\n') {
             }
         }
-        if (modo != 1 && modo != 2)
+        if (partida->modo != 1 && partida->modo != 2)
             printf("Opcao invalida. Digite 1 ou 2.\n");
     }
-    jogarPartida(modo);
+
+    partida->jogadores[0].tipo = MARCA_X;
+    partida->jogadores[1].tipo = MARCA_O;
+    partida->ia.tipo = MARCA_O;
+}
+
+void inicia(Partida *partida) {
+    int jogadas = 0;
+    int vez = 0;
+    int vencedor = 0;
+
+    inicializaTabuleiro(&partida->tabuleiro);
+    desenha(&partida->tabuleiro);
+
+    while (vencedor == 0 && jogadas < 9) {
+        if (vez == 0) {
+            printf("Vez do jogador X\n");
+            jogaTeclado(&partida->jogadores[0], &partida->tabuleiro);
+        } else if (partida->modo == 2) {
+            jogaIA(&partida->ia, &partida->tabuleiro);
+        } else {
+            printf("Vez do jogador O\n");
+            jogaTeclado(&partida->jogadores[1], &partida->tabuleiro);
+        }
+
+        jogadas++;
+        desenha(&partida->tabuleiro);
+        vencedor = temVencedor(&partida->tabuleiro);
+
+        if (vez == 0)
+            vez = 1;
+        else
+            vez = 0;
+    }
+
+    if (vencedor == MARCA_X)
+        printf("Jogador X venceu!\n");
+    else if (vencedor == MARCA_O)
+        printf("Jogador O venceu!\n");
+    else
+        printf("Deu velha! Empate.\n");
 }

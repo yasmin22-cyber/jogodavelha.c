@@ -1,7 +1,10 @@
-include "jogo.h"
- 
+#include "jogo.h"
+
 int main(void) {
-    iniciarJogo();
+    Partida partida;
+
+    configuraJogadores(&partida);
+    inicia(&partida);
+
     return 0;
 }
- 
