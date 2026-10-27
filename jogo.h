@@ -4,18 +4,17 @@
 #define TAMANHO 3
 
 typedef struct {
-    int tabuleiro[TAMANHO][TAMANHO];
+    char tabuleiro[TAMANHO][TAMANHO];
     char jogadorAtual;
     int quantidadeJogadas;
 } Jogo;
 
-void iniciarJogo(void);
-void inicializarTabuleiro(Jogo *jogo);
-void exibirTabuleiro(const Jogo *jogo);
-char sortearJogadorInicial(void);
-int realizarJogada(Jogo *jogo);
-int verificarVitoria(const Jogo *jogo, char jogador);
-int verificarEmpate(const Jogo *jogo);
+void inicializarJogo(Jogo *jogo);
+void mostrarTabuleiro(Jogo *jogo);
+int verificarVitoria(Jogo *jogo, char simbolo);
 void alternarJogador(Jogo *jogo);
+void jogadaHumana(Jogo *jogo);
+void jogadaComputador(Jogo *jogo);
+void iniciarJogo(void);
 
 #endif
